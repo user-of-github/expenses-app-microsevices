@@ -7,7 +7,7 @@ const required = (key: string): string => {
 };
 
 export const config = {
-  port: Number(process.env.AI_SERVICE_PORT) || 4002,
+  port: Number(process.env['AI_SERVICE_PORT']) || 4002,
   ollama: {
     baseUrl: required('OLLAMA_BASE_URL'),
     model: required('OLLAMA_MODEL')

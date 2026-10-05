@@ -1,7 +1,8 @@
-import Fastify from 'fastify';
 import { HumanMessage } from '@langchain/core/messages';
-import { config } from './config.js';
+import Fastify from 'fastify';
+
 import { agent } from './agent.js';
+import { config } from './config.js';
 import { pool } from './tools.js';
 
 const fastify = Fastify({ logger: true });
@@ -24,26 +25,33 @@ fastify.post<{ Body: ChatRequest }>('/chat', async (request, reply) => {
     messages: [new HumanMessage(message)]
   });
 
-  const lastMessage = result.messages[result.messages.length - 1];
-  const response = typeof lastMessage.content === 'string'
-    ? lastMessage.content
-    : lastMessage.content.map((c: any) => c.text || '').join('');
+  const lastMessage = result.messages.at(-1);
+  if (!lastMessage) {
+    return reply.status(500).send({ error: 'empty agent response' });
+  }
+
+  const { content } = lastMessage;
+  const response = typeof content === 'string'
+    ? content
+    : content
+      .map((part) => ('text' in part && typeof part.text === 'string' ? part.text : ''))
+      .join('');
 
   return { response };
 });
 
-const start = async () => {
+const start = async (): Promise<void> => {
   try {
     await fastify.listen({ port: config.port, host: '0.0.0.0' });
     fastify.log.info(`AI Assistant service running on port ${config.port}`);
   }
   catch (err) {
-    fastify.log.error(err);
+    fastify.log.error(err instanceof Error ? err : String(err));
     process.exit(1);
   }
 };
 
-const shutdown = async () => {
+const shutdown = async (): Promise<void> => {
   await fastify.close();
   await pool.end();
   process.exit(0);

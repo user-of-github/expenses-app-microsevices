@@ -1,6 +1,7 @@
-import { ChatOllama } from '@langchain/ollama';
-import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { SystemMessage } from '@langchain/core/messages';
+import { createReactAgent } from '@langchain/langgraph/prebuilt';
+import { ChatOllama } from '@langchain/ollama';
+
 import { config } from './config.js';
 import { SYSTEM_PROMPT } from './prompts.js';
 import { executeSelectQuery } from './tools.js';

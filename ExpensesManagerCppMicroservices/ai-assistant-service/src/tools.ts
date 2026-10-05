@@ -1,7 +1,8 @@
-import { z } from 'zod';
 import { tool } from '@langchain/core/tools';
 import pg from 'pg';
 import type { Pool } from 'pg';
+import { z } from 'zod';
+
 import { config } from './config.js';
 
 const pool: Pool = new pg.Pool({
