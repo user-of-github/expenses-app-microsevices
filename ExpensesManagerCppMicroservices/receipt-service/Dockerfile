@@ -48,7 +48,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
     libssl3 \
-    libjsoncpp26 \
+    libjsoncpp-dev \
     libpq5 \
     libuuid1 \
     zlib1g \
