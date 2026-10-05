@@ -1,25 +1,28 @@
-import js from '@eslint/js';
-import stylistic from '@stylistic/eslint-plugin';
+import stylisticJs from '@stylistic/eslint-plugin-js';
+import babelParser from '@babel/eslint-parser';
 
 export default [
-  js.configs.recommended,
   {
     plugins: {
-      '@stylistic': stylistic,
+      '@stylistic/js': stylisticJs,
+    },
+    files: ['**/*.js', '**/*.cjs', '**/*.mjs', '**/*.ts', '**/*.mts', '**/*.cts'],
+    languageOptions: {
+      parser: babelParser,
+      parserOptions: {
+        requireConfigFile: false,
+        babelOptions: {
+          presets: ['@babel/preset-typescript'],
+        },
+      },
     },
     rules: {
-      '@stylistic/indent': ['error', 2],
-      '@stylistic/quotes': ['error', 'single'],
-      '@stylistic/semi': ['error', 'always'],
-      '@stylistic/comma-dangle': ['error', 'always-multiline'],
-      '@stylistic/arrow-parens': ['error', 'always'],
-      '@stylistic/brace-style': ['error', '1tbs'],
-      '@stylistic/object-curly-spacing': ['error', 'always'],
-      '@stylistic/array-bracket-spacing': ['error', 'never'],
-      '@stylistic/space-before-function-paren': ['error', 'always'],
-      '@stylistic/no-trailing-spaces': 'error',
-      '@stylistic/eol-last': ['error', 'always'],
-      '@stylistic/max-len': ['warn', { code: 100 }],
+      indent: ['warn', 2, { SwitchCase: 1 }],
+      quotes: ['warn', 'single'],
+      semi: ['warn', 'always'],
+      'max-len': ['warn', 135],
+      'comma-dangle': ['warn', 'never'],
     },
+    ignores: ['**/build/*', '**/node_modules/*', '**/dist/*', 'package*.json'],
   },
 ];

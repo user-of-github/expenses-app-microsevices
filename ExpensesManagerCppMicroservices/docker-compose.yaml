@@ -86,10 +86,75 @@ services:
     networks:
       - receipts_network
 
+
+  # Ollama LLM service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama_service
+    restart: always
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai_network
+
+
+  # Initialize Ollama model
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5 &&
+      ollama pull ${OLLAMA_MODEL:-qwen3:1.7b} &&
+      echo 'Model pulled successfully'"
+    networks:
+      - ai_network
+
+
+  # AI Assistant service
+  ai-assistant-service:
+    build:
+      context: ./ai-assistant-service
+      dockerfile: Dockerfile
+    container_name: ai_assistant_service_app
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - OLLAMA_BASE_URL=http://ollama:11434
+    ports:
+      - "${AI_SERVICE_PORT:-4002}:${AI_SERVICE_PORT:-4002}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migration-job:
+        condition: service_completed_successfully
+      ollama:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+    networks:
+      - receipts_network
+      - ai_network
+
     
 volumes:
   postgres-data:
+  ollama-data:
 
 networks:
   receipts_network:
+    driver: bridge
+  ai_network:
     driver: bridge

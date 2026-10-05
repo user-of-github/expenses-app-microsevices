@@ -42,3 +42,36 @@ docker compose --env-file .env up --build
 - `receipt-service/AGENTS.md` — receipt-service internals, code style, conventions
 - `reports-service/AGENTS.md` — reports-service architecture, report generation flow
 - `liquibase/AGENTS.md` — database migration conventions
+
+## Commit conventions
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```
+<type>: <description>
+
+[optional body]
+```
+
+**Types:**
+- `feat` — new feature
+- `fix` — bug fix
+- `docs` — documentation only
+- `style` — formatting, no code change
+- `refactor` — code change that neither fixes a bug nor adds a feature
+- `perf` — performance improvement
+- `test` — adding/fixing tests
+- `build` — build system or dependencies
+- `ci` — CI/CD changes
+- `chore` — other maintenance tasks
+
+**Examples:**
+- `feat: add ai-assistant-service with langchain`
+- `fix: correct database connection timeout`
+- `docs: update README with new endpoints`
+- `feat!: change API authentication method` (breaking change)
+
+**Combining types:** Use comma-separated types for multi-scope changes:
+- `feat,docs: add new endpoint and documentation`
+- `fix,refactor: resolve memory leak and cleanup code`
+
