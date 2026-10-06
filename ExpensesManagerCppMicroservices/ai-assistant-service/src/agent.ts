@@ -1,4 +1,3 @@
-import { SystemMessage } from '@langchain/core/messages';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { ChatOllama } from '@langchain/ollama';
 
@@ -9,7 +8,11 @@ import { executeSelectQuery } from './tools.js';
 const llm = new ChatOllama({
   model: config.ollama.model,
   baseUrl: config.ollama.baseUrl,
-  temperature: 0
+  temperature: 0,
+  // qwen3 thinking: Ollama returns it separately; @langchain/ollama 1.x maps
+  // it to additional_kwargs.reasoning_content, keeping `content` a clean
+  // final answer and tool calls parsed.
+  think: true
 });
 
 const tools = [executeSelectQuery];
@@ -17,7 +20,7 @@ const tools = [executeSelectQuery];
 export const agent = createReactAgent({
   llm,
   tools,
-  messageModifier: new SystemMessage(SYSTEM_PROMPT)
+  prompt: SYSTEM_PROMPT
 });
 
 export type AgentInput = {
