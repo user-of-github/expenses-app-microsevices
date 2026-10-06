@@ -16,6 +16,7 @@ Guidance for AI agents working in this repository.
 |---------|------|---------|--------|
 | **receipt-service** | `receipt-service/` | REST API for receipts/cheques CRUD + classificators (categories, payment methods, retail chains, shops) | Active |
 | **reports-service** | `reports-service/` | Excel report generation from PostgreSQL stored procedures | Active |
+| **ai-assistant-service** | `ai-assistant-service/` | AI expense consultant: natural-language Q&A over the DB (TypeScript, LangChain, Ollama) | Active |
 | **liquibase** | `liquibase/` | Shared database migrations and seeds | Active |
 
 ## Tech stack
