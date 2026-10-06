@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # database
   postgres:
@@ -111,6 +109,8 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
     entrypoint: >
       /bin/sh -c "
       sleep 5 &&
