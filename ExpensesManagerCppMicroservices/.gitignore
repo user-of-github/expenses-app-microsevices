@@ -13,3 +13,7 @@ build/
 *.swp
 *.swo
 *~
+.agents
+.agents/
+.opencode
+.opencode/
