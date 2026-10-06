@@ -42,16 +42,29 @@ export const executeSelectQuery = tool(
 
     const client = await pool.connect();
     try {
-      await client.query('SET TRANSACTION READ ONLY');
-      await client.query('SET statement_timeout = \'10s\'');
+      // Explicit transaction in READ ONLY mode: `SET TRANSACTION READ ONLY`
+      // outside a transaction block is a no-op and protects nothing.
+      // BEGIN READ ONLY makes PostgreSQL itself reject any write.
+      await client.query('BEGIN READ ONLY');
+      await client.query('SET LOCAL statement_timeout = \'10s\'');
       const wrapped = `SELECT * FROM (${trimmed}) AS _t LIMIT ${MAX_ROWS}`;
       const result = await client.query(wrapped);
+      // Read-only: nothing to commit, always end the transaction.
+      await client.query('ROLLBACK');
       if (result.rows.length === 0) {
         return 'Query returned no results.';
       }
       return JSON.stringify(result.rows, null, 2);
     }
     catch (err) {
+      // Failed inside the transaction: roll back so the pooled connection
+      // is not released with an open transaction.
+      try {
+        await client.query('ROLLBACK');
+      }
+      catch {
+        /* transaction already aborted */
+      }
       const message = err instanceof Error ? err.message : String(err);
       return `Query failed: ${message}`;
     }
