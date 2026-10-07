@@ -34,7 +34,7 @@ Guidance for AI agents working in this repository.
 # 1. Copy .env.example → .env and fill in credentials
 cp .env.example .env
 
-# 2. Start Postgres + Liquibase migrations + both services
+# 2. Start Postgres + Liquibase migrations + all services
 docker compose --env-file .env up --build
 ```
 
@@ -42,6 +42,7 @@ docker compose --env-file .env up --build
 
 - `receipt-service/AGENTS.md` — receipt-service internals, code style, conventions
 - `reports-service/AGENTS.md` — reports-service architecture, report generation flow
+- `ai-assistant-service/AGENTS.md` — ai-assistant-service internals, code style, conventions
 - `liquibase/AGENTS.md` — database migration conventions
 
 ## Commit conventions
