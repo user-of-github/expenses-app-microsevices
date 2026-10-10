@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. Install CMake
-RUN curl -sSL https://github.com/Kitware/CMake/releases/download/v4.1.2/cmake-4.1.2-linux-x86_64.sh -o /tmp/cmake-install.sh && \
+RUN curl -sSL https://github.com/Kitware/CMake/releases/download/v4.4.4/cmake-4.4.4-linux-x86_64.sh -o /tmp/cmake-install.sh && \
     chmod +x /tmp/cmake-install.sh && \
     /tmp/cmake-install.sh --skip-license --prefix=/usr/local && \
     rm /tmp/cmake-install.sh
