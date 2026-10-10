@@ -4,12 +4,23 @@ on:
   push:
     paths:
       - 'ExpensesManagerCppMicroservices/receipt-service/**'
+      - 'ExpensesManagerCppMicroservices/reports-service/**'
+      - 'ExpensesManagerCppMicroservices/ai-assistant-service/**'
       - '.github/**'
 
 jobs:
   build-and-push:
-    name: Build & Push
+    name: Build & Push (${{ matrix.service }})
     runs-on: ubuntu-latest
+
+    # One parallel job per microservice.
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - receipt-service
+          - reports-service
+          - ai-assistant-service
 
     steps:
       - name: Checkout code
@@ -23,6 +34,6 @@ jobs:
 
       - name: Build and push
         run: |
-          docker build -t receipt-service ./ExpensesManagerCppMicroservices/receipt-service
-          docker tag receipt-service ${{ secrets.DOCKER_HUB_USERNAME }}/${{ secrets.DOCKER_HUB_REPOSITORY }}:latest
-          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ secrets.DOCKER_HUB_REPOSITORY }}:latest
+          IMAGE="${{ secrets.DOCKER_HUB_USERNAME }}/${{ matrix.service }}:latest"
+          docker build -t "$IMAGE" ./ExpensesManagerCppMicroservices/${{ matrix.service }}
+          docker push "$IMAGE"
