@@ -12,7 +12,7 @@ const llm = new ChatOllama({
   // qwen3 thinking: Ollama returns it separately; @langchain/ollama 1.x maps
   // it to additional_kwargs.reasoning_content, keeping `content` a clean
   // final answer and tool calls parsed.
-  think: true
+  think: config.ollama.think
 });
 
 const tools = [executeSelectQuery];

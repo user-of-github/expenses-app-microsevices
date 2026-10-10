@@ -11,7 +11,12 @@ ___
 - User sends query to `/generate/:report_id`  
 - Service looks for Postgres-pl/pgSQL-procedure's name in DB table by this id  
 - Service calls this pg-procedure and gets rows  
-- Service renders XSLSX files
+- Service renders XSLSX files  
+
+## _TEST:_  
+After launching via Docker-compose:    
+`http://localhost:4001/generate/1`  
+
 
 ## _Advantage_
 To add new custom (simple-structured) report - just add new Postgres-pl/pgSQL procedure via Liquibase migration

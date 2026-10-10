@@ -10,7 +10,10 @@ export const config = {
   port: Number(process.env['AI_SERVICE_PORT']) || 4002,
   ollama: {
     baseUrl: required('OLLAMA_BASE_URL'),
-    model: required('OLLAMA_MODEL')
+    model: required('OLLAMA_MODEL'),
+    // qwen3 thinking mode leaks tool-call JSON into message content with
+    // small models - agent loop breaks. Off by default; opt-in via env.
+    think: process.env['OLLAMA_THINK'] === 'true'
   },
   db: {
     host: required('POSTGRES_HOST'),

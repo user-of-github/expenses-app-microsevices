@@ -10,18 +10,31 @@ ___
 - _[PostrgreSQL](https://www.postgresql.org/)_
 - _[Liquibase](https://www.liquibase.com/) for DB migrations_  
 - _[OpenCode](opencode.ai) + [Alibaba Model Studio](https://www.alibabacloud.com/en?_p_lc=1) for consultations and boilerplate code generation_  
-- _[GitHub Actions CI](https://github.com/features/actions) for some auto-deploy of Docker-containers_
+- _[Langchain](https://www.langchain.com/) + [Ollama](https://ollama.com/) + [Fastify](https://fastify.dev/)_  
+- _[GitHub Actions CI](https://github.com/features/actions) for some auto-build&deploy of Docker-images_
 
 ___  
-### _Installation:_  
+### _Installation [for local]:_  
 - Fill .env with necessary DB data (see [.env.example](./.env.example) for reference)  
 - If running services locally - make sure that configuration in CLion includes environment string same as in .env file  
 - If running locally make cure, you have GNU supporting C++ 20 standard, and mentioned libs above. I have GNU 14 (GCC 14, G++ 14).    
-- Make sure you have all libs installed. **Hint: you may use Dockerfile in REPORTS and RECEIPT microservices just to copy installations of C++ libs.**  
+- Make sure you have all libs installed. **Hint: you may use Dockerfile in REPORTS and RECEIPT microservices just to copy installations of C++ libs.**    
 
 ___  
-### _Hints:_  
-##### If no internet in Docker
+
+### Running via Docker:  
+`sudo docker compose up -d`  
+![Demo](./docker-compose.png)
+
+___  
+### _Hints:_   
+ 
+##### If GPU not available for Ollama:  
+- `sudo apt-get install -y nvidia-container-toolkit`  
+- `sudo nvidia-ctk runtime configure --runtime=docker`  
+- `sudo systemctl restart docker`   
+
+##### If no internet inside Docker container
 - `sudo nano /etc/docker/daemon.json`
 - Insert there:
 ```json
@@ -30,5 +43,5 @@ ___
 }
 ```  
 - `Ctrl+O`, `Enter`, `Ctrl+X`  
-- `sudo systemctl restart docker`
+- `sudo systemctl restart docker`   
 

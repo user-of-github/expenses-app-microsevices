@@ -90,6 +90,7 @@ services:
     image: ollama/ollama:latest
     container_name: ollama_service
     restart: always
+    gpus: all
     ports:
       - "${OLLAMA_PORT:-11434}:11434"
     volumes:
