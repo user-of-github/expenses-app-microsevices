@@ -17,6 +17,7 @@ ___
 - Fill .env with necessary DB data (see [.env.example](./.env.example) for reference)  
 - If running services locally - make sure that configuration in CLion includes environment string same as in .env file  
 - If running locally make cure, you have GNU supporting C++ 20 standard, and mentioned libs above. I have GNU 14 (GCC 14, G++ 14).    
+- Make sure you have all libs installed. **Hint: you may use Dockerfile in REPORTS and RECEIPT microservices just to copy installations of C++ libs.**  
 
 ___  
 ### _Hints:_  
