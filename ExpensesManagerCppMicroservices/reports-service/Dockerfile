@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     libpqxx-dev \
     libxlsxwriter-dev \
     libasio-dev \
+    zlib1g-dev \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
@@ -50,6 +51,7 @@ RUN apt-get update && apt-get install -y \
     libpq5 \
     libpqxx-7.8t64 \
     libxlsxwriter5t64 \
+    zlib1g \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
