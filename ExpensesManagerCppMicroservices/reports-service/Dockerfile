@@ -47,8 +47,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     libssl3 \
     libpq5 \
-    libpqxx-6.4 \
-    libxlsxwriter1 \
+    libpqxx-7.8t64 \
+    libxlsxwriter5t64 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
