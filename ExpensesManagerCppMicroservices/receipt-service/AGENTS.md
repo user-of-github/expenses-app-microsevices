@@ -127,7 +127,7 @@ Read at startup via `std::getenv` (see `src/common/env.hpp`):
 | `POSTGRES_PASSWORD` | DB password |
 | `POSTGRES_HOST` | DB host (`127.0.0.1` locally, `postgres` in Docker) |
 | `POSTGRES_PORT` | DB port (default `5432`) |
-| `APP_PORT` | Service port (default `4000`) |
+| `CHEQUES_SERVICE_APP_PORT` | Service port (default `4000`) |
 
 When running from CLion, the **Run Configuration environment string must match `.env`**.
 

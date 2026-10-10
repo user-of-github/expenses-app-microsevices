@@ -8,14 +8,24 @@ namespace expenses::common {
     inline EnvConfigType load_env_config() {
         EnvConfigType response{};
 
-        const char* host = std::getenv("POSTGRES_HOST");
-        response.db_host = host ? host : "127.0.0.1";
-
-        response.db_name = std::getenv("POSTGRES_DB");
-        response.db_password = std::getenv("POSTGRES_PASSWORD");
-        response.db_user = std::getenv("POSTGRES_USER");
-        response.db_port = std::stoi(std::getenv("POSTGRES_PORT"));
-        response.app_port = std::stoi(std::getenv("APP_PORT"));
+        if (const char* host {std::getenv("POSTGRES_HOST")}) {
+            response.db_host = host;
+        }
+        if (const char* name {std::getenv("POSTGRES_DB")}) {
+            response.db_name = name;
+        }
+        if (const char* user {std::getenv("POSTGRES_USER")}) {
+            response.db_user = user;
+        }
+        if (const char* password {std::getenv("POSTGRES_PASSWORD")}) {
+            response.db_password = password;
+        }
+        if (const char* db_port {std::getenv("POSTGRES_PORT")}) {
+            response.db_port = std::stoi(db_port);
+        }
+        if (const char* app_port {std::getenv("CHEQUES_SERVICE_APP_PORT")}) {
+            response.app_port = std::stoi(app_port);
+        }
 
         return response;
     }
