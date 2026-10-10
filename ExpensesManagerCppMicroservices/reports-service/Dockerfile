@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     libpqxx-dev \
     libxlsxwriter-dev \
+    libasio-dev \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
