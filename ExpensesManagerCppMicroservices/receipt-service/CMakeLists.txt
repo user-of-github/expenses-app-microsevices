@@ -38,6 +38,8 @@ add_executable(receipt_service src/main.cpp
         src/modules/cheque/cheque_repository.cpp
         src/modules/cheque/cheque_repository.hpp
         src/modules/cheque/cheque_dto.hpp
+        src/modules/health/health_controller.cpp
+        src/modules/health/health_controller.hpp
 )
 
 # Linking libs to my file

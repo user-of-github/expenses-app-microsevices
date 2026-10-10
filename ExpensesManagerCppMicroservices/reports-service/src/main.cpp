@@ -23,6 +23,13 @@ int main() {
     app.port(config.app_port);
     controller.register_routes(app);
 
+    CROW_ROUTE(app, "/health")
+    ([] {
+      crow::response res{200, R"({"status":"ok"})"};
+      res.set_header("Content-Type", "application/json");
+      return res;
+    });
+
     std::cout << "Reports service starting on port " << config.app_port << std::endl;
     app.run();
 

@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-assistant-service
+  namespace: expenses
+  labels:
+    app: ai-assistant-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-assistant-service
+  template:
+    metadata:
+      labels:
+        app: ai-assistant-service
+    spec:
+      containers:
+        - name: ai-assistant-service
+          image: ai-assistant-service:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 4002
+          envFrom:
+            - secretRef:
+                name: app-env
+          env:
+            # Inside the cluster the DB and Ollama hosts are Service names.
+            - name: POSTGRES_HOST
+              value: postgres
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: AI_SERVICE_PORT
+              value: "4002"
+            - name: OLLAMA_BASE_URL
+              value: http://ollama:11434
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-assistant-service
+  namespace: expenses
+  labels:
+    app: ai-assistant-service
+spec:
+  type: NodePort
+  selector:
+    app: ai-assistant-service
+  ports:
+    - name: http
+      port: 4002
+      targetPort: http
+      nodePort: 30402

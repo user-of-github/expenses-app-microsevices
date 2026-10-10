@@ -61,6 +61,9 @@ receipt-service/
 
 ## Endpoints
 
+### Health
+- `GET /health` — liveness/readiness probe (Kubernetes), returns `{ "status": "ok" }`
+
 ### Classificators
 - `GET /payment-methods` — list active payment methods
 - `GET /categories` — list expense categories

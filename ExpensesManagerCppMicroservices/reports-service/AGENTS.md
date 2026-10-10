@@ -110,6 +110,7 @@ reports-service/
 
 ## Endpoints (target design)
 
+- `GET /health` — liveness/readiness probe (Kubernetes), returns `{ "status": "ok" }`
 - `GET /generate/:id` — generate report by ID
   - `:id` — integer, references `reports_procedures_names.id`
   - Returns: `.xlsx` file download

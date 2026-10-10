@@ -43,5 +43,48 @@ ___
 }
 ```  
 - `Ctrl+O`, `Enter`, `Ctrl+X`  
-- `sudo systemctl restart docker`   
+- `sudo systemctl restart docker`    
+
+##### k8s tutorial:  
+- Check Dockerfile in every microservice
+- `sudo minikube delete --all`  
+- `sudo usermod -aG docker $USER`  
+- `newgrp docker`  
+- `minikube start --driver=docker`  
+- `minikube status`  
+- `minikube image build -t receipt-service:dev ./receipt-service/`  
+- `minikube image build -t reports-service:dev ./reports-service/`  
+- `minikube image build -t ai-assistant-service:dev ./ai-assistant-service/`  
+- `minikube image build -t liquibase-expenses:dev ./liquibase/`  
+- `kubectl create namespace expenses`  
+- `kubectl config set-context --current --namespace=expenses`  
+- `kubectl create secret generic app-env --from-env-file=.env`  
+- To check env keys `kubectl describe secret app-env`  
+	- After changing ENV: 
+	- `kubectl create secret generic app-env --from-env-file=.env \
+  --dry-run=client -o yaml | kubectl apply -f -
+kubectl rollout restart deployment/receipt-service deployment/reports-service`  
+
+- `mkdir k8s`  
+- Create files: 
+  - `k8s/postgres.yaml`
+  - `k8s/migration-job.yaml`, 
+  - `k8s/ollama.yaml`, 
+  - `k8s/receipt-service.yaml`, 
+  - `k8s/reports-service.yaml`,
+  - `k8s/ai-assistant-service.yaml`  
+
+- Apply manifests in order (dependencies first):  
+```bash
+kubectl apply -f k8s/postgres.yaml
+kubectl wait --for=condition=available deployment/postgres --timeout=120s
+kubectl apply -f k8s/migration-job.yaml
+kubectl wait --for=condition=complete job/migration-job --timeout=300s
+kubectl apply -f k8s/ollama.yaml
+kubectl wait --for=condition=complete job/ollama-init --timeout=600s
+kubectl apply -f k8s/receipt-service.yaml -f k8s/reports-service.yaml -f k8s/ai-assistant-service.yaml
+```
+- NodePorts: receipt `30400`, reports `30401`, ai-assistant `30402`. Use `minikube service receipt-service` for a tunnel.  
+- Re-running migrations: `kubectl delete job migration-job && kubectl apply -f k8s/migration-job.yaml`  
+
 

@@ -65,7 +65,8 @@ ai-assistant-service/
 - Temperature 0 for deterministic responses
 
 ### API (`src/index.ts`)
-- `GET /` — health check → `{ message }`
+- `GET /` — status message → `{ message }`
+- `GET /health` — liveness/readiness probe (Kubernetes) → `{ status: 'ok' }`
 - `POST /chat` — chat endpoint
   - Request: `{ message: string }`
   - Response: `{ response: string }`

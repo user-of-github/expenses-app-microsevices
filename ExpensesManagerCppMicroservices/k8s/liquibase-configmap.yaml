@@ -1,0 +1,460 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: liquibase-changelogs
+  namespace: expenses
+data:
+  changelog-master.yaml: |
+    databaseChangeLog:
+      - include:
+          file: migrations/2026-09-19-01_create-base-classificators.sql
+          relativeToChangelogFile: true
+      - include:
+          file: migrations/2026-09-19-02_create-base-entities.sql
+          relativeToChangelogFile: true
+      - include:
+          file: seeds/2026-09-19-01_seed-initial-classificators-data.sql
+          relativeToChangelogFile: true
+      - include:
+          file: seeds/2026-09-20-01_seed-cheques-for-testing.sql
+          relativeToChangelogFile: true
+      - include:
+          file: migrations/2026-10-04-01_add-reports-table.sql
+          relativeToChangelogFile: true
+      - include:
+          file: migrations/2026-10-04-02_add-first-report-plsql.sql
+          relativeToChangelogFile: true
+      - include:
+          file: seeds/2026-10-04-01_save-new-report-proc-to-table.sql
+          relativeToChangelogFile: true
+      - include:
+          file: seeds/2026-10-04-02_seed-more-cheques-for-testing.sql
+          relativeToChangelogFile: true
+
+  2026-09-19-01_create-base-classificators.sql: |
+    --liquibase formatted sql
+    
+    --changeset user-of-github:01
+    
+    CREATE TABLE payment_methods (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE
+    );
+    
+    COMMENT ON TABLE payment_methods IS 'Classificator of available payment methods (cash, card, QR..)';
+    COMMENT ON COLUMN payment_methods.id IS 'Unique id of payment method';
+    COMMENT ON COLUMN payment_methods.name IS 'Name/description';
+    COMMENT ON COLUMN payment_methods.is_active IS 'Is active';
+    
+    
+    CREATE TABLE categories (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE,
+        description TEXT
+    );
+    
+    COMMENT ON TABLE categories IS 'Classificator of goods/expenses categories';
+    COMMENT ON COLUMN categories.id IS 'Unique id for category';
+    COMMENT ON COLUMN categories.name IS 'Category title';
+    COMMENT ON COLUMN categories.description IS 'Category description';
+
+  2026-09-19-02_create-base-entities.sql: |
+    --liquibase formatted sql
+    
+    --changeset user-of-github:02
+    
+    
+    CREATE TABLE retail_chains (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE
+    );
+    
+    COMMENT ON TABLE retail_chains IS 'Retail chains';
+    COMMENT ON COLUMN retail_chains.id IS 'Unique id for retail-chain';
+    COMMENT ON COLUMN retail_chains.name IS 'Shop title';
+    
+    CREATE TABLE concrete_shops (
+        id SERIAL PRIMARY KEY,
+        retail_chain_id INT REFERENCES retail_chains(id) ON UPDATE CASCADE ON DELETE CASCADE,
+        address VARCHAR(100) NOT NULL UNIQUE,
+        is_active BOOLEAN DEFAULT TRUE
+    );
+    
+    COMMENT ON TABLE concrete_shops IS 'Concrete shop id';
+    COMMENT ON COLUMN concrete_shops.id IS 'Unique id for concrete shop';
+    COMMENT ON COLUMN concrete_shops.retail_chain_id IS 'Id of retailing-shop-chain (line)';
+    COMMENT ON COLUMN concrete_shops.address IS 'Address';
+    COMMENT ON COLUMN concrete_shops.is_active IS 'Working or closed';
+    CREATE INDEX idx_concrete_shops_retail_chain_id ON concrete_shops(retail_chain_id);
+    
+    
+    
+    CREATE TABLE cheques (
+        id BIGSERIAL PRIMARY KEY,
+        concrete_store_id INT REFERENCES concrete_shops(id) ON UPDATE CASCADE ON DELETE SET NULL,
+        payment_method_id INT REFERENCES payment_methods(id) ON UPDATE CASCADE ON DELETE SET NULL ,
+        total_amount NUMERIC(12, 2) NOT NULL CHECK (total_amount >= 0),
+        receipt_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    COMMENT ON TABLE cheques IS 'Shopping cheques';
+    COMMENT ON COLUMN cheques.id IS 'Cheque id';
+    COMMENT ON COLUMN cheques.concrete_store_id IS 'Store of purchase FK';
+    COMMENT ON COLUMN cheques.payment_method_id IS 'Payment method FK';
+    COMMENT ON COLUMN cheques.total_amount IS 'Total sum of purchase cost';
+    COMMENT ON COLUMN cheques.receipt_date IS 'Cheque date';
+    COMMENT ON COLUMN cheques.created_at IS 'Created at';
+    COMMENT ON COLUMN cheques.updated_at IS 'Updated at';
+    
+    
+    
+    CREATE TABLE cheque_items (
+        id BIGSERIAL PRIMARY KEY,
+        cheque_id BIGINT NOT NULL REFERENCES cheques(id) ON DELETE CASCADE,
+        category_id INT REFERENCES categories(id) ON DELETE SET NULL,
+        product_name VARCHAR(255) NOT NULL,
+        quantity NUMERIC(10, 3) NOT NULL DEFAULT 1.000 CHECK (quantity > 0),
+        unit_price NUMERIC(12, 2) NOT NULL CHECK (unit_price >= 0),
+        total_price NUMERIC(12, 2) NOT NULL CHECK (total_price >= 0)
+    );
+    
+    COMMENT ON TABLE cheque_items IS 'Concrete bought item';
+    COMMENT ON COLUMN cheque_items.id IS 'Unique row id';
+    COMMENT ON COLUMN cheque_items.cheque_id IS 'Parent receipt (cheque)';
+    COMMENT ON COLUMN cheque_items.category_id IS 'Item category id';
+    COMMENT ON COLUMN cheque_items.product_name IS 'Item title';
+    COMMENT ON COLUMN cheque_items.quantity IS 'Count (or weight, if in KG..)';
+    COMMENT ON COLUMN cheque_items.unit_price IS 'Price per 1 item';
+    COMMENT ON COLUMN cheque_items.total_price IS 'Total price (quantity * unit_price)';
+    
+    CREATE INDEX idx_cheque_items_cheque_id ON cheque_items(cheque_id);
+    CREATE INDEX idx_cheque_items_category_id ON cheque_items(category_id);
+
+  2026-10-04-01_add-reports-table.sql: |
+    --liquibase formatted sql
+    
+    --changeset user-of-github:01-create-reports-procedures
+    CREATE TABLE reports_procedures_names (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(100) NOT NULL,
+        procedure_name VARCHAR(100) NOT NULL
+    );
+    
+    COMMENT ON TABLE reports_procedures_names IS 'Registry of available report stored procedures';
+    COMMENT ON COLUMN reports_procedures_names.title IS 'Report title';
+    COMMENT ON COLUMN reports_procedures_names.procedure_name IS 'PL/pgSQL procedure name in Postgres DB';
+
+  2026-10-04-02_add-first-report-plsql.sql: |
+    --liquibase formatted sql
+    
+    --changeset user-of-github:01-create-category-report-proc endDelimiter:/
+    CREATE OR REPLACE FUNCTION get_monthly_category_report()
+    RETURNS TABLE (
+        "Category" VARCHAR,
+        "Items Count" BIGINT,
+        "Total Spent" NUMERIC
+    ) AS $$
+    BEGIN
+        RETURN QUERY
+        SELECT
+            COALESCE(c.name, 'Uncategorized')::VARCHAR AS "Category",
+            COUNT(ci.id)::BIGINT AS "Items Count",
+            ROUND(COALESCE(SUM(ci.total_price), 0.0), 2) AS "Total Spent"
+        FROM cheque_items ci
+        JOIN cheques ch ON ci.cheque_id = ch.id
+        LEFT JOIN categories c ON ci.category_id = c.id
+        GROUP BY c.name
+        ORDER BY 3 DESC;
+    END;
+    $$ LANGUAGE plpgsql;
+    /
+
+  2026-09-19-01_seed-initial-classificators-data.sql: |
+    --liquibase formatted sql
+    
+    --changeset user-of-github:01
+    INSERT INTO payment_methods (name, is_active) VALUES
+        ('Debit / Credit Card', TRUE),
+        ('Cash', TRUE),
+        ('QR Code (Oplati / Mobile)', TRUE),
+        ('Loyalty Points', TRUE);
+    
+    --changeset user-of-github:02
+    INSERT INTO categories (name, description) VALUES
+        ('Groceries', 'Supermarket foods, diary, meat, and vegetables'),
+        ('Household & Cleaning', 'Cleaning supplies, home detergents, and consumables'),
+        ('Drinks & Snacks', 'Water, coffee, tea, soft drinks, and sweets'),
+        ('Prepared Food & Bakery', 'Ready-to-eat meals, bakery, and deli counter'),
+        ('Other', 'Uncategorized daily goods');
+    
+    --changeset user-of-github:03
+    INSERT INTO retail_chains (name) VALUES
+        ('Euroopt'),
+        ('HIPPO'),
+        ('Green');
+    
+    --changeset user-of-github:04
+    -- Euroopt stores
+    INSERT INTO concrete_shops (retail_chain_id, address, is_active)
+    SELECT id, 'Minsk, Montazhnikov str. 2 (Euroopt Prime)', TRUE
+    FROM retail_chains WHERE name = 'Euroopt';
+    
+    INSERT INTO concrete_shops (retail_chain_id, address, is_active)
+    SELECT id, 'Minsk, Dzerzhinskogo ave. 104 (Titan Mall)', TRUE
+    FROM retail_chains WHERE name = 'Euroopt';
+    
+    -- HIPPO stores
+    INSERT INTO concrete_shops (retail_chain_id, address, is_active)
+    SELECT id, 'Minsk, Rokossovskogo ave. 2', TRUE
+    FROM retail_chains WHERE name = 'HIPPO';
+    
+    INSERT INTO concrete_shops (retail_chain_id, address, is_active)
+    SELECT id, 'Minsk, Goretskogo str. 2', TRUE
+    FROM retail_chains WHERE name = 'HIPPO';
+    
+    -- Green stores
+    INSERT INTO concrete_shops (retail_chain_id, address, is_active)
+    SELECT id, 'Minsk, Pritytskogo str. 156 (Green City Mall)', TRUE
+    FROM retail_chains WHERE name = 'Green';
+    
+    INSERT INTO concrete_shops (retail_chain_id, address, is_active)
+    SELECT id, 'Minsk, Partizanski ave. 182', TRUE
+    FROM retail_chains WHERE name = 'Green';
+
+  2026-09-20-01_seed-cheques-for-testing.sql: |
+    --liquibase formatted sql
+    
+    --changeset user-of-github:01-seed-cheques
+    
+    -- I generated it with Gemini
+    
+    INSERT INTO cheques (id, concrete_store_id, payment_method_id, total_amount, receipt_date) VALUES
+        (1, 1, 1, 54.57, '2026-09-10 10:15:00+03'),
+        (2, 5, 3, 69.20, '2026-09-11 18:30:00+03'),
+        (3, 3, 2, 75.00, '2026-09-12 12:45:00+03'),
+        (4, 2, 1, 76.76, '2026-09-13 19:10:00+03'),
+        (5, 4, 1, 55.22, '2026-09-14 14:05:00+03'),
+        (6, 6, 3, 59.70, '2026-09-15 09:20:00+03'),
+        (7, 1, 1, 92.73, '2026-09-16 17:50:00+03'),
+        (8, 5, 1, 66.90, '2026-09-17 13:15:00+03'),
+        (9, 3, 2, 70.60, '2026-09-18 20:05:00+03'),
+        (10, 2, 1, 61.80, '2026-09-19 16:40:00+03');
+    
+    --changeset user-of-github:06-seed-cheque-items
+    INSERT INTO cheque_items (cheque_id, category_id, product_name, quantity, unit_price, total_price) VALUES
+        -- Cheque 1: Groceries run at Euroopt Prime
+        (1, 1, 'Fresh Milk 3.2% 1L', 2.000, 2.19, 4.38),
+        (1, 1, 'Whole Wheat Bread 400g', 1.000, 1.85, 1.85),
+        (1, 1, 'Eggs Large Grade A 10pcs', 1.000, 3.40, 3.40),
+        (1, 1, 'Butter 82.5% 180g', 1.000, 4.15, 4.15),
+        (1, 1, 'Chicken Breast Fillet 1kg', 1.250, 11.50, 14.38),
+        (1, 1, 'Cheddar Cheese Block 250g', 1.000, 6.20, 6.20),
+        (1, 1, 'Bananas Fresh', 1.420, 4.50, 6.39),
+        (1, 1, 'Tomatoes Vine Ripe', 0.850, 7.90, 6.72),
+        (1, 3, 'Mineral Sparkling Water 1.5L', 2.000, 1.60, 3.20),
+        (1, 2, 'Kitchen Paper Towels 2-pack', 1.000, 3.90, 3.90),
+    
+        -- Cheque 2: Snacks and Coffee at Green City Mall
+        (2, 3, 'Arabica Coffee Beans 250g', 1.000, 16.50, 16.50),
+        (2, 3, 'Dark Chocolate 85% 100g', 2.000, 3.80, 7.60),
+        (2, 4, 'Croissant Butter Bakery', 2.000, 2.20, 4.40),
+        (2, 3, 'Orange Juice Fresh 1L', 1.000, 5.80, 5.80),
+        (2, 3, 'Roasted Almonds 150g', 1.000, 8.90, 8.90),
+        (2, 3, 'Green Tea Jasmine 20 bags', 1.000, 4.50, 4.50),
+        (2, 4, 'Baguette French Crispy', 1.000, 1.90, 1.90),
+        (2, 1, 'Greek Yogurt Plain 400g', 2.000, 2.60, 5.20),
+        (2, 1, 'Fresh Blueberries 125g', 1.000, 7.50, 7.50),
+        (2, 3, 'Granola Honey & Oats 375g', 1.000, 6.90, 6.90),
+    
+        -- Cheque 3: Cleaning essentials at HIPPO Rokossovskogo
+        (3, 2, 'Dishwashing Liquid Citrus 500ml', 1.000, 4.20, 4.20),
+        (3, 2, 'Laundry Detergent Gel 1.5L', 1.000, 22.50, 22.50),
+        (3, 2, 'Multi-surface Cleaning Spray 750ml', 1.000, 7.30, 7.30),
+        (3, 2, 'Microfiber Cleaning Cloths 3pcs', 1.000, 4.90, 4.90),
+        (3, 2, 'Trash Bags Heavy Duty 60L 20pcs', 2.000, 3.60, 7.20),
+        (3, 2, 'Toilet Paper 3-ply 8 rolls', 1.000, 9.80, 9.80),
+        (3, 5, 'AA Alkaline Batteries 4-pack', 1.000, 6.50, 6.50),
+        (3, 2, 'Hand Soap Liquid Antibacterial 300ml', 2.000, 3.20, 6.40),
+        (3, 2, 'Sponges Heavy Duty 5-pack', 1.000, 2.80, 2.80),
+        (3, 3, 'Peppermint Chewing Gum 30g', 2.000, 1.70, 3.40),
+    
+        -- Cheque 4: Dinner ingredients at Euroopt Titan Mall
+        (4, 1, 'Beef Tenderloin Steak 500g', 0.650, 28.00, 18.20),
+        (4, 1, 'Baby Potatoes 1kg', 1.800, 2.20, 3.96),
+        (4, 1, 'Fresh Rosemary Pack', 1.000, 2.90, 2.90),
+        (4, 1, 'Garlic 3-pack', 1.000, 2.10, 2.10),
+        (4, 1, 'Extra Virgin Olive Oil 500ml', 1.000, 19.90, 19.90),
+        (4, 1, 'Sea Salt Grinder 100g', 1.000, 5.40, 5.40),
+        (4, 1, 'Black Pepper Grinder 50g', 1.000, 6.10, 6.10),
+        (4, 1, 'Mixed Salad Greens 150g', 1.000, 4.30, 4.30),
+        (4, 3, 'Non-Alcoholic Beer 0.5L', 4.000, 2.80, 11.20),
+        (4, 4, 'Ciabatta Olive Bread', 1.000, 2.70, 2.70),
+    
+        -- Cheque 5: Weekly staples at HIPPO Goretskogo
+        (5, 1, 'Oat Flakes Bio 500g', 2.000, 2.40, 4.80),
+        (5, 1, 'Cottage Cheese 5% 300g', 2.000, 3.10, 6.20),
+        (5, 1, 'Spaghetti Durum Wheat 500g', 2.000, 3.20, 6.40),
+        (5, 1, 'Tomato Basil Pasta Sauce 350g', 2.000, 4.90, 9.80),
+        (5, 1, 'Parmesan Cheese Wedge 200g', 1.000, 11.90, 11.90),
+        (5, 1, 'Yellow Onions 1kg', 1.100, 1.80, 1.98),
+        (5, 1, 'Carrots Washed 1kg', 1.300, 1.90, 2.47),
+        (5, 1, 'Apples Gala 1kg', 1.650, 3.80, 6.27),
+        (5, 3, 'Herbal Tea Chamomile 25 bags', 1.000, 3.90, 3.90),
+        (5, 5, 'Shopping Reusable Bag Large', 1.000, 1.50, 1.50),
+    
+        -- Cheque 6: Breakfast run at Green Partizanski
+        (6, 4, 'Pain au Chocolat Bakery', 2.000, 2.50, 5.00),
+        (6, 4, 'Cinnamon Roll Glazed', 2.000, 2.80, 5.60),
+        (6, 3, 'Cold Brew Coffee 330ml', 2.000, 4.50, 9.00),
+        (6, 1, 'Strawberries Fresh 250g', 1.000, 8.90, 8.90),
+        (6, 1, 'Sour Cream 20% 300g', 1.000, 2.40, 2.40),
+        (6, 1, 'Ricotta Cheese 250g', 1.000, 5.10, 5.10),
+        (6, 3, 'Energy Drink Sugar Free 250ml', 2.000, 3.20, 6.40),
+        (6, 3, 'Roasted Pistachios Salted 100g', 1.000, 9.50, 9.50),
+        (6, 4, 'Sesame Bagel Plain', 2.000, 1.60, 3.20),
+        (6, 1, 'Salted Butter 200g', 1.000, 4.60, 4.60),
+    
+        -- Cheque 7: BBQ weekend at Euroopt Prime
+        (7, 1, 'Pork Ribs Marinated 1kg', 1.600, 16.80, 26.88),
+        (7, 1, 'Cumberland Sausages 400g', 2.000, 7.50, 15.00),
+        (7, 1, 'BBQ Sauce Smokey Hickory 350ml', 1.000, 5.90, 5.90),
+        (7, 1, 'Dijon Mustard 200g', 1.000, 3.40, 3.40),
+        (7, 1, 'Sweet Corn on the Cob 2pcs', 2.000, 4.20, 8.40),
+        (7, 1, 'Red Bell Peppers 1kg', 0.750, 8.20, 6.15),
+        (7, 2, 'Charcoal Briquettes 2.5kg', 1.000, 9.90, 9.90),
+        (7, 2, 'Firestarter Cubes 24pcs', 1.000, 3.50, 3.50),
+        (7, 3, 'Lemonade Sparkling 1L', 2.000, 2.90, 5.80),
+        (7, 3, 'Tortilla Corn Chips 150g', 2.000, 3.90, 7.80),
+    
+        -- Cheque 8: Healthy lunch at Green City Mall
+        (8, 1, 'Fresh Atlantic Salmon Fillet 300g', 1.000, 19.80, 19.80),
+        (8, 1, 'Avocado Hass Ready to Eat 2pcs', 1.000, 7.90, 7.90),
+        (8, 1, 'Quinoa Organic 400g', 1.000, 6.50, 6.50),
+        (8, 1, 'Baby Spinach Fresh 125g', 1.000, 3.80, 3.80),
+        (8, 1, 'Cherry Tomatoes 250g', 1.000, 4.60, 4.60),
+        (8, 1, 'Lemon Fresh Each', 2.000, 1.20, 2.40),
+        (8, 1, 'Cucumber Greenhouse 1kg', 0.600, 4.50, 2.70),
+        (8, 3, 'Coconut Water Pure 330ml', 2.000, 3.90, 7.80),
+        (8, 3, 'Raw Energy Bar Cashew Date 50g', 3.000, 2.60, 7.80),
+        (8, 4, 'Whole Seed Sourdough Loaf 450g', 1.000, 3.60, 3.60),
+    
+        -- Cheque 9: Home and Pantry refill at HIPPO Rokossovskogo
+        (9, 1, 'Turkey Breast Sliced Deli 150g', 2.000, 4.90, 9.80),
+        (9, 1, 'Gouda Cheese Sliced 150g', 2.000, 4.20, 8.40),
+        (9, 1, 'Basmati Rice 800g', 1.000, 5.50, 5.50),
+        (9, 1, 'Canned Tuna in Olive Oil 160g', 3.000, 4.80, 14.40),
+        (9, 1, 'Green Peas Canned 400g', 2.000, 2.10, 4.20),
+        (9, 1, 'Sweet Corn Canned 340g', 2.000, 2.30, 4.60),
+        (9, 2, 'Toothpaste Whitening Complete 75ml', 1.000, 6.20, 6.20),
+        (9, 2, 'Shampoo Daily Moisture 400ml', 1.000, 11.50, 11.50),
+        (9, 2, 'Cotton Pads 120pcs', 1.000, 2.90, 2.90),
+        (9, 3, 'Still Mineral Water 5L', 1.000, 3.10, 3.10),
+    
+        -- Cheque 10: Weekend snacks and sweets at Euroopt Titan Mall
+        (10, 4, 'Margherita Pizza Fresh Bake 400g', 1.000, 12.50, 12.50),
+        (10, 4, 'Garlic Bread with Herbs 200g', 1.000, 3.40, 3.40),
+        (10, 3, 'Ice Cream Vanilla Bean 500ml', 1.000, 9.20, 9.20),
+        (10, 3, 'Potato Crisps Sour Cream & Onion 140g', 2.000, 3.80, 7.60),
+        (10, 3, 'Cola Zero Sugar 1.5L', 2.000, 2.60, 5.20),
+        (10, 3, 'Milk Chocolate Hazelnut 90g', 2.000, 3.50, 7.00),
+        (10, 1, 'Fresh Strawberries & Bananas Mix', 1.000, 6.80, 6.80),
+        (10, 1, 'Whipped Cream Spray 250ml', 1.000, 5.30, 5.30),
+        (10, 2, 'Wet Wipes Antibacterial 60pcs', 1.000, 2.90, 2.90),
+        (10, 5, 'Paper Napkins 100pcs', 1.000, 1.90, 1.90);
+    
+    --changeset user-of-github:07-sync-sequences
+    -- Выравниваем последовательность первичных ключей после ручного указания ID
+    SELECT setval('cheques_id_seq', (SELECT MAX(id) FROM cheques));
+    SELECT setval('cheque_items_id_seq', (SELECT MAX(id) FROM cheque_items));
+
+  2026-10-04-01_save-new-report-proc-to-table.sql: |
+    --liquibase formatted sql
+    
+    --changeset user-of-github:03-seed-first-report-procedure
+    INSERT INTO reports_procedures_names (id, title, procedure_name)
+    VALUES (1, 'Category Spending Report', 'get_monthly_category_report');
+
+  2026-10-04-02_seed-more-cheques-for-testing.sql: |
+    --liquibase formatted sql
+    
+    --changeset user-of-github:02-seed-more-cheques
+    
+    -- 5 additional cheques with 10 items each for testing
+    
+    INSERT INTO cheques (id, concrete_store_id, payment_method_id, total_amount, receipt_date) VALUES
+        (11, 2, 2, 47.63, '2026-09-25 11:30:00+03'),
+        (12, 4, 1, 55.00, '2026-09-26 15:45:00+03'),
+        (13, 1, 3, 101.30, '2026-09-27 18:20:00+03'),
+        (14, 6, 2, 87.00, '2026-09-28 13:10:00+03'),
+        (15, 3, 1, 109.20, '2026-09-29 20:00:00+03');
+    
+    --changeset user-of-github:03-seed-more-cheque-items
+    
+    INSERT INTO cheque_items (cheque_id, category_id, product_name, quantity, unit_price, total_price) VALUES
+        -- Cheque 11: Weekly groceries at HIPPO Rokossovskogo (cash payment)
+        (11, 1, 'Whole Milk 2.5% 1L', 3.000, 2.10, 6.30),
+        (11, 1, 'Sour Cream 15% 400g', 2.000, 2.80, 5.60),
+        (11, 1, 'Pork Loin Fresh 800g', 0.850, 14.50, 12.33),
+        (11, 1, 'Potatoes Washed 2kg', 1.000, 3.20, 3.20),
+        (11, 1, 'Cabbage White 1kg', 1.000, 1.40, 1.40),
+        (11, 1, 'Carrots Organic 1kg', 1.000, 2.10, 2.10),
+        (11, 1, 'Onions Yellow 1kg', 1.000, 1.60, 1.60),
+        (11, 3, 'Apple Juice 1L', 2.000, 3.40, 6.80),
+        (11, 3, 'Mineral Water Still 1.5L', 3.000, 1.50, 4.50),
+        (11, 5, 'Bread Sliced Rye 400g', 2.000, 1.90, 3.80),
+    
+        -- Cheque 12: Quick lunch at HIPPO Goretskogo (card payment)
+        (12, 4, 'Chicken Wings Frozen 1kg', 1.000, 8.90, 8.90),
+        (12, 4, 'French Fries Crispy 750g', 1.000, 5.40, 5.40),
+        (12, 3, 'Ketchup Tomato 350g', 1.000, 3.20, 3.20),
+        (12, 3, 'Mayonnaise Classic 250g', 1.000, 2.80, 2.80),
+        (12, 3, 'Cola Classic 1.5L', 2.000, 2.90, 5.80),
+        (12, 3, 'Lemonade Lime 1L', 2.000, 2.60, 5.20),
+        (12, 3, 'Potato Crisps Salted 100g', 2.000, 3.10, 6.20),
+        (12, 3, 'Chocolate Bar Milk 90g', 3.000, 2.40, 7.20),
+        (12, 3, 'Ice Cream Vanilla 500ml', 1.000, 7.80, 7.80),
+        (12, 5, 'Paper Plates 25pcs', 1.000, 2.50, 2.50),
+    
+        -- Cheque 13: Big shopping at Euroopt Prime (QR code payment)
+        (13, 1, 'Beef Mince 500g', 1.000, 12.80, 12.80),
+        (13, 1, 'Pasta Spaghetti 500g', 2.000, 2.90, 5.80),
+        (13, 1, 'Tomato Sauce Basil 400g', 2.000, 3.60, 7.20),
+        (13, 1, 'Mozzarella Cheese 125g', 2.000, 4.50, 9.00),
+        (13, 1, 'Bell Peppers Mixed 1kg', 1.000, 8.90, 8.90),
+        (13, 1, 'Zucchini Green 1kg', 1.000, 4.20, 4.20),
+        (13, 1, 'Mushrooms Fresh 300g', 1.000, 6.80, 6.80),
+        (13, 2, 'Olive Oil Extra Virgin 500ml', 1.000, 18.50, 18.50),
+        (13, 3, 'Red Wine Dry 750ml', 1.000, 24.90, 24.90),
+        (13, 4, 'Baguette Italian', 1.000, 3.20, 3.20),
+    
+        -- Cheque 14: Household refill at Green Partizanski (cash payment)
+        (14, 2, 'Dishwasher Tablets 30pcs', 1.000, 15.90, 15.90),
+        (14, 2, 'Glass Cleaner Spray 500ml', 1.000, 4.80, 4.80),
+        (14, 2, 'Floor Cleaner Lemon 1L', 1.000, 6.20, 6.20),
+        (14, 2, 'Laundry Pods 40pcs', 1.000, 18.50, 18.50),
+        (14, 2, 'Fabric Softener 1L', 1.000, 7.90, 7.90),
+        (14, 2, 'Toilet Paper 4-ply 12 rolls', 1.000, 12.80, 12.80),
+        (14, 2, 'Kitchen Towels 3-pack', 1.000, 5.40, 5.40),
+        (14, 2, 'Trash Bags 50L 30pcs', 2.000, 3.90, 7.80),
+        (14, 2, 'Sponges Multi-purpose 5pcs', 1.000, 3.20, 3.20),
+        (14, 5, 'Air Freshener Spray 250ml', 1.000, 4.50, 4.50),
+    
+        -- Cheque 15: Weekend treats at HIPPO Rokossovskogo (card payment)
+        (15, 3, 'Coffee Beans Arabica 500g', 1.000, 19.90, 19.90),
+        (15, 3, 'Tea Green Jasmine 100g', 1.000, 8.50, 8.50),
+        (15, 3, 'Cookies Oatmeal 300g', 2.000, 4.20, 8.40),
+        (15, 3, 'Chocolate Dark 70% 100g', 3.000, 3.80, 11.40),
+        (15, 3, 'Nuts Mix Roasted 200g', 2.000, 9.90, 19.80),
+        (15, 4, 'Croissant Almond', 4.000, 2.50, 10.00),
+        (15, 4, 'Cake Chocolate Slice', 2.000, 5.80, 11.60),
+        (15, 3, 'Sparkling Water Grapefruit 330ml', 4.000, 2.10, 8.40),
+        (15, 1, 'Yogurt Greek Strawberry 200g', 3.000, 2.90, 8.70),
+        (15, 5, 'Gift Bag Medium', 1.000, 2.50, 2.50);
+    
+    --changeset user-of-github:04-sync-sequences-after-more-cheques
+    -- Sync sequences after manual ID insertion
+    SELECT setval('cheques_id_seq', (SELECT MAX(id) FROM cheques));
+    SELECT setval('cheque_items_id_seq', (SELECT MAX(id) FROM cheque_items));

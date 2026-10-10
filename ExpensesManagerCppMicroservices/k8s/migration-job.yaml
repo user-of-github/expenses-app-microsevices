@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migration-job
+  namespace: expenses
+  labels:
+    app: migration-job
+spec:
+  backoffLimit: 4
+  template:
+    metadata:
+      labels:
+        app: migration-job
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:17-alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: app-env
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: app-env
+                  key: POSTGRES_USER
+          command:
+            - sh
+            - -c
+            - until pg_isready -h postgres -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB"; do echo "waiting for postgres..."; sleep 3; done
+      containers:
+        - name: liquibase
+          image: liquibase-expenses:dev
+          imagePullPolicy: IfNotPresent
+          workingDir: /liquibase/changelog
+          args:
+            - --url=jdbc:postgresql://postgres:5432/$(POSTGRES_DB)
+            - --changelog-file=changelog-master.yaml
+            - --username=$(POSTGRES_USER)
+            - --password=$(POSTGRES_PASSWORD)
+            - update
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: app-env
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: app-env
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-env
+                  key: POSTGRES_PASSWORD

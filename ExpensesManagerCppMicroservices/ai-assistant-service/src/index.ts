@@ -15,6 +15,10 @@ fastify.get('/', async () => {
   return { message: 'AI Assistant Service is running' };
 });
 
+fastify.get('/health', async () => {
+  return { status: 'ok' };
+});
+
 fastify.post<{ Body: ChatRequest }>('/chat', async (request, reply) => {
   const { message } = request.body;
   if (!message) {
