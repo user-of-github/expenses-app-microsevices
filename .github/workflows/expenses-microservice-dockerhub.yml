@@ -1,5 +1,10 @@
 name: Expenses CPP microservices --> DockerHub
 
+# Group prefix applied to every image so all services clearly belong to expenses-app.
+# Resulting images: <DOCKER_HUB_USERNAME>/<IMAGE_PREFIX><service>:latest
+env:
+  IMAGE_PREFIX: expenses-app-
+
 on:
   push:
     paths:
@@ -34,6 +39,6 @@ jobs:
 
       - name: Build and push
         run: |
-          IMAGE="${{ secrets.DOCKER_HUB_USERNAME }}/${{ matrix.service }}:latest"
+          IMAGE="${{ secrets.DOCKER_HUB_USERNAME }}/${IMAGE_PREFIX}${{ matrix.service }}:latest"
           docker build -t "$IMAGE" ./ExpensesManagerCppMicroservices/${{ matrix.service }}
           docker push "$IMAGE"
