@@ -11,6 +11,9 @@ type ChatRequest = {
   message: string;
 };
 
+const usedTool = (result: { messages: { getType(): string }[] }): boolean =>
+  result.messages.some((entry) => entry.getType() === 'tool');
+
 fastify.get('/', async () => {
   return { message: 'AI Assistant Service is running' };
 });
@@ -25,13 +28,37 @@ fastify.post<{ Body: ChatRequest }>('/chat', async (request, reply) => {
     return reply.status(400).send({ error: 'message is required' });
   }
 
-  const result = await agent.invoke({
+  let result = await agent.invoke({
     messages: [new HumanMessage(message)]
   });
+
+  // Small models sometimes answer from memory without querying. Retry once
+  // with an explicit instruction to force the tool call.
+  if (!usedTool(result)) {
+    result = await agent.invoke({
+      messages: [
+        new HumanMessage(message),
+        new HumanMessage(
+          'You must call the execute_select_query tool to answer this. '
+          + 'Do not answer from memory or guess any number.'
+        )
+      ]
+    });
+  }
 
   const lastMessage = result.messages.at(-1);
   if (!lastMessage) {
     return reply.status(500).send({ error: 'empty agent response' });
+  }
+
+  // Guard: the answer must come from a real DB query. Small models can leak
+  // their reasoning or a raw `tool_call` blob into `content` without ever
+  // invoking the tool; never return that raw text to the client.
+  if (!usedTool(result)) {
+    return {
+      response: 'I could not retrieve expense data for that question. '
+        + 'Please ask about your expenses, receipts, categories, shops, or payment methods.'
+    };
   }
 
   const { content } = lastMessage;

@@ -4,7 +4,7 @@ ___
 - _[Fastify](https://fastify.dev/)_  
 - _[TypeScript](https://www.typescriptlang.org/)_  
 - _[LangChain.js (ReAct agent)](https://js.langchain.com/)_  
-- _[Ollama (qwen3:1.7b)](https://ollama.com/)_  
+- _[Ollama (granite4.1:3b)](https://ollama.com/)_  
 - _[PostgreSQL (read-only access to postgres-service)](https://www.postgresql.org/)_  
 ___  
 ## _Flow_
@@ -15,9 +15,19 @@ ___
 - Agent composes human-readable answer  
 
 ## _TEST:_  
-After launching via Docker-compose:    
+
+Body DTO: `{ "message": "<natural-language question>" }`.
+
+**Docker (docker compose):** port `4002`
 ```bash
 curl -X POST http://localhost:4002/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "How much did I spend on groceries last month?"}'
+```
+
+**Minikube:** NodePort `30402` on the minikube node
+```bash
+curl -X POST http://$(minikube ip):30402/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "How much did I spend on groceries last month?"}'
 ```  

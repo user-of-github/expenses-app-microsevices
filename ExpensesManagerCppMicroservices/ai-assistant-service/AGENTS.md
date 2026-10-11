@@ -11,7 +11,7 @@ Provides intelligent consultation about personal expenses through natural langua
 - **TypeScript** (ESM, `module: NodeNext`)
 - **Fastify 5** HTTP server
 - **LangChain 1.x** (`@langchain/core`, `@langchain/langgraph`, `@langchain/ollama`)
-- **Ollama** LLM runtime (default model `qwen3:1.7b`)
+- **Ollama** LLM runtime (default model `granite4.1:3b`)
 - **`pg`** PostgreSQL client
 - **`zod`** tool input schemas
 - **PostgreSQL 17** (read-only access, shared with receipt-service)
@@ -20,7 +20,7 @@ Provides intelligent consultation about personal expenses through natural langua
 ## Architecture
 
 - **Agent**: LangGraph ReAct agent (`createReactAgent`) driven by `ChatOllama`
-- **LLM**: Ollama, `temperature: 0`, `think: true` (qwen3 reasoning kept out of final `content`)
+- **LLM**: Ollama, `temperature: 0`, thinking off by default (`OLLAMA_THINK` opt-in; small models leak reasoning/tool-call JSON into `content`)
 - **Database**: PostgreSQL 17, read-only
 
 ## Directory structure
@@ -71,6 +71,7 @@ ai-assistant-service/
   - Request: `{ message: string }`
   - Response: `{ response: string }`
   - `400` when `message` is missing, `500` on empty agent response
+  - Answers only from a real DB query (ReAct tool call). If the model skips the tool, one forced retry runs; if it still does not query, a fallback message is returned instead of raw model text
 - Graceful shutdown on `SIGTERM` / `SIGINT` (closes Fastify, ends pg pool)
 
 ## Code style & conventions
@@ -104,7 +105,7 @@ All variables are defined in the **root `.env`** file (shared with the other ser
 ```bash
 AI_SERVICE_PORT=4002
 OLLAMA_BASE_URL=http://ollama:11434    # overridden by docker-compose
-OLLAMA_MODEL=qwen3:1.7b
+OLLAMA_MODEL=granite4.1:3b
 POSTGRES_HOST=postgres                  # overridden by docker-compose
 POSTGRES_PORT=5432                      # overridden by docker-compose
 POSTGRES_DB=expense_db
@@ -117,7 +118,7 @@ POSTGRES_PASSWORD=<password>
 ## Docker Setup
 
 - **Ollama service**: separate container (`ollama_service`) running Ollama
-- **Model**: qwen3:1.7b (lightweight, supports tool calling, 2025 release)
+- **Model**: granite4.1:3b (small, tool calling + structured JSON, fits a 6 GiB GPU)
 - **Auto-pull**: `ollama-init` service runs `ollama pull` on first start
 - **Networks**: connected to both `receipts_network` (DB access) and `ai_network` (Ollama)
 - **Depends on**: healthy `postgres`, completed `migration-job`, healthy `ollama`, completed `ollama-init`
