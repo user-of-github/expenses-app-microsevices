@@ -34,7 +34,7 @@ spec:
             - until pg_isready -h postgres -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB"; do echo "waiting for postgres..."; sleep 3; done
       containers:
         - name: liquibase
-          image: liquibase-expenses:dev
+          image: liquibase/liquibase:4.29
           imagePullPolicy: IfNotPresent
           workingDir: /liquibase/changelog
           args:
@@ -59,3 +59,31 @@ spec:
                 secretKeyRef:
                   name: app-env
                   key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: changelogs
+              mountPath: /liquibase/changelog
+      volumes:
+        # Changelogs are supplied as a ConfigMap (see k8s/liquibase-configmap.yaml).
+        # keys are basenames; items reconstruct the migrations/ and seeds/ folders.
+        - name: changelogs
+          configMap:
+            name: liquibase-changelogs
+            items:
+              - key: changelog-master.yaml
+                path: changelog-master.yaml
+              - key: 2026-09-19-01_create-base-classificators.sql
+                path: migrations/2026-09-19-01_create-base-classificators.sql
+              - key: 2026-09-19-02_create-base-entities.sql
+                path: migrations/2026-09-19-02_create-base-entities.sql
+              - key: 2026-10-04-01_add-reports-table.sql
+                path: migrations/2026-10-04-01_add-reports-table.sql
+              - key: 2026-10-04-02_add-first-report-plsql.sql
+                path: migrations/2026-10-04-02_add-first-report-plsql.sql
+              - key: 2026-09-19-01_seed-initial-classificators-data.sql
+                path: seeds/2026-09-19-01_seed-initial-classificators-data.sql
+              - key: 2026-09-20-01_seed-cheques-for-testing.sql
+                path: seeds/2026-09-20-01_seed-cheques-for-testing.sql
+              - key: 2026-10-04-01_save-new-report-proc-to-table.sql
+                path: seeds/2026-10-04-01_save-new-report-proc-to-table.sql
+              - key: 2026-10-04-02_seed-more-cheques-for-testing.sql
+                path: seeds/2026-10-04-02_seed-more-cheques-for-testing.sql

@@ -57,10 +57,15 @@ spec:
                 - ollama list || exit 1
             initialDelaySeconds: 30
             periodSeconds: 20
-          # GPU (optional): enable on a node with the NVIDIA device plugin.
-          # resources:
-          #   limits:
-          #     nvidia.com/gpu: 1
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              # NVIDIA GTX 1660 Ti (6 GiB) via the device plugin.
+              # On CPU-only nodes remove this limit.
+              nvidia.com/gpu: 1
+              memory: 6Gi
       volumes:
         - name: data
           persistentVolumeClaim:
