@@ -1,7 +1,5 @@
 name: Expenses CPP microservices --> DockerHub
 
-# Group prefix applied to every image so all services clearly belong to expenses-app.
-# Resulting images: <DOCKER_HUB_USERNAME>/<IMAGE_PREFIX><service>:latest
 env:
   IMAGE_PREFIX: expenses-app-
 
