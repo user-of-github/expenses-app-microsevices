@@ -1,4 +1,4 @@
-# _CPP Microservices application_
+# _{ C++ & Node.js & Langchain } Microservices application_
 ## _Expenses-manager microservices_
 ___   
 
@@ -10,7 +10,7 @@ ___
 - _[PostrgreSQL](https://www.postgresql.org/)_
 - _[Liquibase](https://www.liquibase.com/) for DB migrations_  
 - _[OpenCode](opencode.ai) + [Alibaba Model Studio](https://www.alibabacloud.com/en?_p_lc=1) for consultations and boilerplate code generation_  
-- _[Langchain](https://www.langchain.com/) + [Ollama](https://ollama.com/) + [Fastify](https://fastify.dev/)_  
+- _[Langchain](https://www.langchain.com/) + [Ollama](https://ollama.com/) + [IBM Granite LLM](https://www.ibm.com/granite)_  
 - _[GitHub Actions CI](https://github.com/features/actions) for some auto-build&deploy of Docker-images_
 
 ___  
@@ -25,6 +25,48 @@ ___
 ### Running via Docker:  
 `sudo docker compose up -d`  
 ![Demo](./docker-compose.png)
+
+### Running via Minikube: 
+Prereqs: `minikube`, `kubectl`, and Docker with the NVIDIA runtime (for the Ollama GPU). Full step-by-step is in the [k8s tutorial](#k8s-tutorial) below.
+
+```bash
+# 1) start cluster (GPU needs the docker container-runtime, not containerd)
+minikube start --driver=docker --container-runtime=docker --gpus all --memory=8g --cpus=4
+
+# 2) build service images inside minikube
+minikube image build -t receipt-service:dev ./receipt-service/
+minikube image build -t reports-service:dev ./reports-service/
+minikube image build -t ai-assistant-service:dev ./ai-assistant-service/
+
+# 3) namespace + secrets
+kubectl create namespace expenses
+kubectl create secret generic app-env -n expenses --from-env-file=.env
+
+# 4) apply manifests (dependencies first)
+kubectl apply -f k8s/liquibase-configmap.yaml
+kubectl apply -f k8s/postgres.yaml
+kubectl wait --for=condition=available deployment/postgres -n expenses --timeout=120s
+kubectl apply -f k8s/migration-job.yaml
+kubectl wait --for=condition=complete job/migration-job -n expenses --timeout=300s
+kubectl apply -f k8s/ollama.yaml
+kubectl wait --for=condition=complete job/ollama-init -n expenses --timeout=600s
+kubectl apply -f k8s/receipt-service.yaml -f k8s/reports-service.yaml -f k8s/ai-assistant-service.yaml
+
+# 5) check
+kubectl get pods -n expenses
+```
+
+Access via NodePort on the minikube node IP (`minikube ip`, usually `192.168.49.2`):
+
+| Service | URL |
+|---------|-----|
+| receipt-service | `http://$(minikube ip):30400` |
+| reports-service | `http://$(minikube ip):30401` |
+| ai-assistant-service | `http://$(minikube ip):30402` |
+
+No route to the node IP? Open a tunnel with `minikube service receipt-service -n expenses`.
+![Demo](./kubectl.png)
+
 
 ___  
 ### _Hints:_   
@@ -50,12 +92,13 @@ ___
 - `sudo minikube delete --all`  
 - `sudo usermod -aG docker $USER`  
 - `newgrp docker`  
-- `minikube start --driver=docker`  
+- `minikube start --driver=docker --container-runtime=docker --gpus all --memory=8g --cpus=4`  
+	- `--gpus all` (NVIDIA) requires the **docker** container-runtime, so the profile must not use containerd. The `nvidia-device-plugin` addon is enabled automatically.  
+	- Verify: `kubectl get node minikube -o jsonpath='{.status.allocatable.nvidia\.com/gpu}'` → `1`.  
 - `minikube status`  
 - `minikube image build -t receipt-service:dev ./receipt-service/`  
 - `minikube image build -t reports-service:dev ./reports-service/`  
 - `minikube image build -t ai-assistant-service:dev ./ai-assistant-service/`  
-- `minikube image build -t liquibase-expenses:dev ./liquibase/`  
 - `kubectl create namespace expenses`  
 - `kubectl config set-context --current --namespace=expenses`  
 - `kubectl create secret generic app-env --from-env-file=.env`  
@@ -72,10 +115,12 @@ kubectl rollout restart deployment/receipt-service deployment/reports-service`
   - `k8s/ollama.yaml`, 
   - `k8s/receipt-service.yaml`, 
   - `k8s/reports-service.yaml`,
-  - `k8s/ai-assistant-service.yaml`  
+  - `k8s/ai-assistant-service.yaml`,
+  - `k8s/liquibase-configmap.yaml` (Liquibase changelogs, no custom image needed)  
 
 - Apply manifests in order (dependencies first):  
 ```bash
+kubectl apply -f k8s/liquibase-configmap.yaml
 kubectl apply -f k8s/postgres.yaml
 kubectl wait --for=condition=available deployment/postgres --timeout=120s
 kubectl apply -f k8s/migration-job.yaml
@@ -84,6 +129,7 @@ kubectl apply -f k8s/ollama.yaml
 kubectl wait --for=condition=complete job/ollama-init --timeout=600s
 kubectl apply -f k8s/receipt-service.yaml -f k8s/reports-service.yaml -f k8s/ai-assistant-service.yaml
 ```
+- After editing `liquibase/`, regenerate the ConfigMap from the manifests or rerun the generator before re-applying the job.  
 - NodePorts: receipt `30400`, reports `30401`, ai-assistant `30402`. Use `minikube service receipt-service` for a tunnel.  
 - Re-running migrations: `kubectl delete job migration-job && kubectl apply -f k8s/migration-job.yaml`  
 

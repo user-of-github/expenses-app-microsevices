@@ -14,8 +14,16 @@ ___
 - Service renders XSLSX files  
 
 ## _TEST:_  
-After launching via Docker-compose:    
-`http://localhost:4001/generate/1`  
+
+**Docker (docker compose):** port `4001`
+```bash
+curl -OJ http://localhost:4001/generate/1
+```
+
+**Minikube:** NodePort `30401` on the minikube node
+```bash
+curl -OJ http://$(minikube ip):30401/generate/1
+```  
 
 
 ## _Advantage_
